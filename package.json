@@ -1,0 +1,17 @@
+{
+  "name": "nexus-master-superagent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-site.mjs",
+    "test": "tsx --test tests/*.test.ts",
+    "dev": "npm run build && node scripts/dev.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
