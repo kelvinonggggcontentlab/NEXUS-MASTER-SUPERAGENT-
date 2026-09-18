@@ -25,3 +25,9 @@ Open `http://localhost:5173`. Use `npm test`, `npm run check`, and `npm run buil
 Real Google and messaging adapters require server-side OAuth handling and encrypted token storage. Keep these values server-only: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, an AI provider key such as `GEMINI_API_KEY` or `OPENAI_API_KEY`, and a Supabase service key only in a trusted backend. The browser application must receive neither tokens nor service credentials.
 
 Before enabling real mode, replace each simulation adapter with a verified API adapter, implement durable idempotency storage (for uncertain writes), persist execution/memory state in a protected database, and add user authentication plus consent screens.
+
+## Google Drive real mode
+
+`src/server/google-oauth.ts` implements server-only authorization-code OAuth, one-time state consumption, refresh handling, and disconnect. `src/server/google-drive.ts` uses the Google Drive REST API and `createGoogleDriveTools` exposes search, get, rename, and move tools that verify against fresh Drive metadata. Bind the framework-neutral connection handler in `src/server/http-api.ts` to an authenticated server session; never call it from the static client with tokens.
+
+Required server-only variables are `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`. Store Google tokens encrypted at rest in `integration_accounts`; use an application key-management/encryption service, not conversational memory. Real mode cannot be enabled until a server session resolver and the encrypted Supabase repositories for `GoogleConnectionStore` and `OAuthStateStore` are deployed.
