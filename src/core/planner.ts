@@ -15,6 +15,9 @@ export class HeuristicNexusProvider {
     if (lower.includes("rename")) tasks.push(task("rename-file", "Renaming the file", "drive.rename", { fileId: "drive-invoice-sept", name: renamed }, fileDependency ? [fileDependency] : []));
     const moveDependency = tasks.at(-1)?.id;
     if (lower.includes("move") || lower.includes("finance")) tasks.push(task("move-file", "Moving it to Finance", "drive.move", { fileId: "drive-invoice-sept", folder }, moveDependency ? [moveDependency] : []));
+    const summaryDependency = tasks.at(-1)?.id;
+    if (lower.includes("summarize") || lower.includes("summary") || lower.includes("analyse") || lower.includes("analyze")) tasks.push(task("summarize-document", "Reading and summarising the document", "document.summarize", { fileId: "drive-invoice-sept" }, summaryDependency ? [summaryDependency] : []));
+    if (lower.includes("email") || lower.includes("send it to")) { const recipient = request.match(/(?:email|send (?:it|the summary)? ?to)\s+([\w.-]+(?:@[\w.-]+)?)/i)?.[1] ?? "Kelvin"; tasks.push(task("send-email", "Sending the email", "gmail.send", { to: recipient, subject: `Requested document: ${renamed}`, body: "NEXUS prepared the requested document summary." }, tasks.at(-1)?.id ? [tasks.at(-1)!.id] : [])); }
     if (lower.includes("remind") || lower.includes("reminder")) tasks.push(task("create-reminder", "Creating your reminder", "tasks.create", { title: `Review ${renamed}`, when: lower.includes("10") ? "tomorrow at 10:00" : "tomorrow" }));
     return { goal: request, tasks };
   }

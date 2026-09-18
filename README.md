@@ -13,11 +13,12 @@ Open `http://localhost:5173`. Use `npm test`, `npm run check`, and `npm run buil
 
 ## Architecture
 
-- `src/core/engine.ts` owns dependency-aware execution, parallel safe-ready tasks, bounded retries, validation, permissions, execution history, and verification.
+- `src/core/engine.ts` owns dependency-aware execution, parallel safe-ready tasks, bounded retries, cancellation, validation, permissions, idempotency recovery, execution history, and verification.
 - `src/core/registry.ts` dynamically discovers registered adapters. New integrations implement `NexusTool`; they do not modify the core.
 - `src/core/planner.ts` is a provider-shaped planning boundary. `HeuristicNexusProvider` is an offline deterministic provider suitable for development; production Gemini/OpenAI providers should implement `NexusAIProvider` on a server boundary.
 - `src/core/simulation-tools.ts` contains clearly labelled simulation adapters for Gmail, Drive, and reminders. It must not be used with real credentials.
 - `src/core/memory.ts`, `permissions.ts`, and `response.ts` isolate session memory, safety policy, and NEXUS communication.
+- `src/server/` is a server-only boundary for configuration and real Google Workspace adapters. It is never imported into the browser bundle. `supabase/schema.sql` defines user-isolated durable execution, conversation, tool-call, and controlled-memory storage.
 
 ## Production integrations
 
