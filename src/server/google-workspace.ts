@@ -1,0 +1,19 @@
+import type { NexusTool, ToolContext, ToolResult } from "../core/types.js";
+import type { DriveFile, GoogleDriveClient } from "./google-drive.js";
+
+const object = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+const text = (value: unknown, field: string): string | undefined => typeof value === "string" && value.trim() ? value.trim() : undefined;
+const fileId = (value: unknown): value is Record<string, unknown> => object(value) && Boolean(text(value.fileId, "fileId"));
+const renameInput = (value: unknown): value is Record<string, unknown> => fileId(value) && Boolean(text(value.name, "name")) && !/[\\/\0]/.test(String(value.name));
+const moveInput = (value: unknown): value is Record<string, unknown> => fileId(value) && Boolean(text(value.folderId, "folderId"));
+const metadata = (toolName: string, context: ToolContext) => ({ toolName, executionId: context.executionId, timestamp: new Date().toISOString(), mode: "real" as const, idempotencyKey: context.idempotencyKey });
+const success = (name: string, context: ToolContext, data: unknown): ToolResult => ({ success: true, data, metadata: metadata(name, context) });
+const matchesName = (result: ToolResult, file: DriveFile) => file.name === (result.data as DriveFile).name;
+
+/** Produces user-scoped, real Google Drive tools. The factory must be called only after server session authentication. */
+export const createGoogleDriveTools = (drive: GoogleDriveClient): NexusTool[] => [
+  { id: "drive.search", name: "Google Drive search", description: "Searches the authenticated user's Drive", category: "Google Workspace", capability: "drive.search_files", authentication: "user_oauth", permission: "read", riskLevel: "low", enabled: true, requiresConfirmation: false, inputSchema: object, execute: async (value, context) => success("Google Drive search", context, await drive.searchFiles(String(value.query ?? ""), false, context.signal)) },
+  { id: "drive.get", name: "Google Drive file metadata", description: "Retrieves a Drive file's current metadata", category: "Google Workspace", capability: "drive.get_file", authentication: "user_oauth", permission: "read", riskLevel: "low", enabled: true, requiresConfirmation: false, inputSchema: fileId, execute: async (value, context) => success("Google Drive file metadata", context, await drive.getFile(String(value.fileId), context.signal)) },
+  { id: "drive.rename", name: "Google Drive rename", description: "Renames an authenticated user's Drive file", category: "Google Workspace", capability: "drive.rename_file", authentication: "user_oauth", permission: "write", riskLevel: "medium", enabled: true, requiresConfirmation: false, inputSchema: renameInput, execute: async (value, context) => success("Google Drive rename", context, await drive.renameFile(String(value.fileId), String(value.name), context.signal)), verify: async (value, result, context) => { const current = await drive.getFile(String(value.fileId), context.signal); return { verified: matchesName(result, current) && current.name === String(value.name), detail: "Retrieved current Google Drive metadata and compared the filename." }; } },
+  { id: "drive.move", name: "Google Drive move", description: "Moves an authenticated user's Drive file into a selected folder", category: "Google Workspace", capability: "drive.move_file", authentication: "user_oauth", permission: "write", riskLevel: "medium", enabled: true, requiresConfirmation: false, inputSchema: moveInput, execute: async (value, context) => success("Google Drive move", context, await drive.moveFile(String(value.fileId), String(value.folderId), context.signal)), verify: async (value, _, context) => { const current = await drive.getFile(String(value.fileId), context.signal); return { verified: current.parents.includes(String(value.folderId)), detail: "Retrieved current Google Drive metadata and compared parent folders." }; } }
+];
